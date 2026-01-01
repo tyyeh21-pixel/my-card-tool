@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刷卡攻略 3.1 (修正版)</title>
+    <title>刷卡攻略 4.0 (目錄版)</title>
     <style>
         :root {
             --primary: #007AFF;
@@ -12,8 +12,8 @@
             --text: #1d1d1f;
             --sub-text: #86868b;
             --warning: #ff3b30;
-            --highlight: #5856d6; /* 紫色：CUBE 方案 */
-            --taishin: #e60012;   /* 紅色：台新 方案 */
+            --highlight: #5856d6;
+            --taishin: #e60012;
             --tag-bg: #f2f2f7;
         }
 
@@ -53,19 +53,29 @@
         
         input[type="search"]:focus { outline: 2px solid var(--primary); }
 
-        .hint { font-size: 0.8rem; color: var(--sub-text); margin-top: 5px; text-align: center; }
-
         #result-area {
             width: 100%;
             max-width: 450px;
             padding-bottom: 50px;
         }
 
+        /* 分類標題樣式 */
+        .group-header {
+            margin: 30px 0 15px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            border-bottom: 2px solid #e5e5ea;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
         .result-title {
-            margin: 15px 0 10px 5px;
+            margin: 10px 0;
             font-size: 0.9rem;
             color: var(--sub-text);
-            font-weight: 600;
         }
 
         .card {
@@ -77,29 +87,14 @@
             border: 1px solid rgba(0,0,0,0.03);
             position: relative;
             overflow: hidden;
-            transition: transform 0.2s;
         }
         
         .card.best-match {
             border: 2px solid var(--primary);
             background: #fff;
             box-shadow: 0 8px 25px rgba(0,122,255,0.12);
-            transform: scale(1.01);
         }
         
-        .card.best-match::after {
-            content: "👑 首選";
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: var(--primary);
-            color: white;
-            padding: 4px 12px;
-            font-size: 0.8rem;
-            border-bottom-left-radius: 12px;
-            font-weight: bold;
-        }
-
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -110,505 +105,299 @@
         .card-name { font-size: 1.1rem; font-weight: 800; color: #000; }
         .rate { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
 
-        .tags-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
+        .tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
         .badge-scheme.cube { background-color: #f3f2ff; color: var(--highlight); border: 1px solid #dcdaff; }
         .badge-scheme.taishin { background-color: #fff2f2; color: var(--taishin); border: 1px solid #ffcccc; }
         .badge-method { background-color: var(--tag-bg); color: #333; }
 
-        .details {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-        }
-
-        .detail-row {
-            margin-bottom: 4px;
-            display: flex;
-            align-items: flex-start;
-        }
-        
+        .details { background-color: #f9f9f9; padding: 10px; border-radius: 10px; font-size: 0.85rem; }
+        .detail-row { margin-bottom: 4px; display: flex; align-items: flex-start; }
         .icon { margin-right: 6px; min-width: 16px; }
         .limit-text { color: var(--warning); }
         .period-text { color: var(--sub-text); font-size: 0.8rem; }
+        
+        /* 關鍵字顯示區 (方便檢查) */
+        .keywords-preview {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 8px;
+            border-top: 1px dashed #eee;
+            padding-top: 5px;
+        }
 
     </style>
 </head>
 <body>
 
-    <h1>刷卡攻略 3.1</h1>
+    <h1>刷卡資料庫 4.0</h1>
 
     <div class="search-container">
-        <input type="search" id="search-input" list="merchant-list" placeholder="輸入: 家樂福, Lopia, 日本...">
-        <div class="hint">支援模糊搜尋，請輸入關鍵字</div>
-        
-        <datalist id="merchant-list">
-            <option value="家樂福 / Lopia">
-            <option value="麥當勞">
-            <option value="7-11 / 全家">
-            <option value="新光三越">
-            <option value="蝦皮 / Momo">
-            <option value="日本海外">
-            <option value="大港開唱">
-        </datalist>
+        <input type="search" id="search-input" placeholder="輸入關鍵字搜尋，或向下滑動瀏覽全目錄">
     </div>
 
     <div id="result-area">
         </div>
 
     <script>
+        // -----------------------------------------------------------
+        // 資料庫設定 (新增 group 欄位以便分類顯示)
+        // -----------------------------------------------------------
         const rules = [
-            // ==========================================
-            // 特殊活動：大港開唱 / 瘋大港
-            // ==========================================
+            // --- 特殊活動 ---
             {
-                keywords: ["大港開唱", "瘋大港", "拓元", "klook", "高雄住宿", "城市商旅", "麗尊", "和逸", "華園", "捷絲旅"],
+                group: "🔥 限時活動 / 壽星",
+                keywords: ["大港開唱", "瘋大港", "拓元", "klook", "高雄住宿"],
                 cardName: "國泰 CUBE 卡",
-                scheme: "切換【瘋大港】",
-                schemeType: "cube",
-                method: "官網/現場刷卡",
-                rate: "3.5%~10%",
-                sortVal: 10.0,
+                scheme: "切換【瘋大港】", schemeType: "cube",
+                method: "官網/現場刷卡", rate: "3.5%~10%", sortVal: 10.0,
                 limit: "售票/住宿/高鐵3.5%，現場周邊10%",
                 period: "2025/12/16 ~ 2026/3/23"
             },
             {
-                keywords: ["大港開唱", "大港倉", "棧二庫", "星巴克", "左腳右腳"],
+                group: "🔥 限時活動 / 壽星",
+                keywords: ["慶生月", "壽星", "櫻桃谷", "富美海鮮", "錢櫃", "好樂迪", "屋賀爺"],
                 cardName: "國泰 CUBE 卡",
-                scheme: "切換【瘋大港】",
-                schemeType: "cube",
-                method: "指定門市",
-                rate: "10%",
-                sortVal: 10.1,
-                limit: "大港周邊指定店家",
-                period: "2026/3/21 ~ 2026/3/23 (僅三天)"
-            },
-
-            // ==========================================
-            // 量販 / 超市 (家樂福、Lopia) - 修正補上
-            // ==========================================
-            {
-                keywords: ["家樂福", "carrefour", "lopia", "大買家", "唐吉軻德", "donki"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【天天刷】",
-                schemeType: "taishin",
-                method: "台新Pay / 實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "量販/超市首選",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["家樂福", "carrefour", "lopia", "全聯"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【集精選】",
-                schemeType: "cube",
-                method: "實體卡 / PX Pay",
-                rate: "2%",
-                sortVal: 2.0,
-                limit: "LOPIA/家樂福屬集精選",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["IKEA", "宜家", "特力屋", "hola", "宜得利"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【大筆刷】",
-                schemeType: "taishin",
-                method: "實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "居家裝修類",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["IKEA", "宜家"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【集精選】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "2%",
-                sortVal: 2.0,
-                limit: "IKEA 是集精選",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // CUBE 慶生月 (壽星專屬)
-            // ==========================================
-            {
-                keywords: ["櫻桃谷", "富美海鮮", "上乘三家", "茶宴", "肉肉餐桌", "歐鄉牛排", "老時光", "火車頭", "小和山谷", "屋賀爺"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【慶生月】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "10%",
-                sortVal: 9.5,
-                limit: "壽星專屬 (宜花東美食)",
+                scheme: "切換【慶生月】", schemeType: "cube",
+                method: "實體卡", rate: "10%", sortVal: 9.5,
+                limit: "壽星專屬 (宜花東/KTV/指定餐酒)",
                 period: "2026/1/1 ~ 2026/3/31"
             },
             {
-                keywords: ["錢櫃", "好樂迪", "星聚點", "享溫馨", "ktv"],
+                group: "🔥 限時活動 / 壽星",
+                keywords: ["童樂匯", "親子", "10mois", "tiger family", "朱宗慶"],
                 cardName: "國泰 CUBE 卡",
-                scheme: "切換【慶生月】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "10%",
-                sortVal: 9.5,
-                limit: "壽星專屬 (KTV)",
-                period: "2026/1/1 ~ 2026/3/31"
-            },
-            // 若非壽星，KTV 推薦台新
-            {
-                keywords: ["錢櫃", "好樂迪", "oncor", "享溫馨", "ktv"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【好饗刷】",
-                schemeType: "taishin",
-                method: "實體卡 / 台新Pay",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "非壽星請用此方案",
+                scheme: "切換【童樂匯】", schemeType: "cube",
+                method: "官網/實體", rate: "5%~10%", sortVal: 9.0,
+                limit: "需符合親子帳戶資格",
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // ==========================================
-            // 麥當勞 / 速食
-            // ==========================================
+            // --- 交通通勤 ---
             {
-                keywords: ["麥當勞", "mcdonald", "速食"],
+                group: "🚄 交通 / 通勤 / 計程車",
+                keywords: ["高鐵", "台鐵", "uber", "yoxi", "linego", "計程車"],
                 cardName: "台新 Richart 卡",
-                scheme: "切換【Pay著刷】",
-                schemeType: "taishin",
-                method: "綁定 台灣Pay",
-                rate: "3.8%",
-                sortVal: 3.8,
-                limit: "需用台灣Pay (不能用Line Pay)",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["麥當勞", "mcdonald", "速食"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【樂饗購】",
-                schemeType: "cube",
-                method: "實體卡 / Apple Pay",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "小額支付有回饋",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["麥當勞", "mcdonald", "速食", "小額"],
-                cardName: "永豐大戶 (悠遊卡)",
-                scheme: null,
-                schemeType: null,
-                method: "悠遊卡感應",
-                rate: "3%",
-                sortVal: 2.9,
-                limit: "上限 $100/月",
-                period: "長期有效"
-            },
-
-            // ==========================================
-            // 超商 (7-11 / 全家)
-            // ==========================================
-            {
-                keywords: ["7-11", "seven", "全家", "超商", "便利商店"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【Pay著刷】",
-                schemeType: "taishin",
-                method: "綁定 台新Pay",
-                rate: "3.8%",
-                sortVal: 3.8,
-                limit: "用台新Pay (Line Pay僅2.3%)",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["7-11", "seven", "全家", "超商"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【集精選】",
-                schemeType: "cube",
-                method: "OPEN錢包 / FamiPay",
-                rate: "2%",
-                sortVal: 2.0,
-                limit: "實體卡無回饋，需綁錢包",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 國內百貨 / 購物
-            // ==========================================
-            {
-                keywords: ["新光三越", "sogo", "遠東百貨", "101", "巨城", "漢神", "微風", "誠品", "eslite", "夢時代", "南紡", "京站", "outlet", "skm"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【大筆刷】",
-                schemeType: "taishin",
-                method: "台新Pay / 實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "含 skm pay",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["新光三越", "sogo", "遠東百貨", "101", "巨城", "漢神", "微風", "誠品", "eslite", "夢時代", "南紡", "京站", "outlet"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【樂饗購】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "注意 UNIQLO/ZARA 不在此項",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            
-            // 快時尚
-            {
-                keywords: ["uniqlo", "gu", "zara", "net", "h&m", "gap", "lululemon"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【大筆刷】",
-                schemeType: "taishin",
-                method: "實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "時尚品味通路",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 餐廳 / 外送
-            // ==========================================
-            {
-                keywords: ["餐廳", "吃飯", "王品", "鼎泰豐", "星巴克", "路易莎", "早餐"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【好饗刷】",
-                schemeType: "taishin",
-                method: "實體卡 / 台新Pay",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "全台餐飲皆適用",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["uber eats", "ubereats", "foodpanda", "外送"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【好饗刷】",
-                schemeType: "taishin",
-                method: "綁定 App",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "外送雙雄皆可",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["uber eats", "ubereats", "foodpanda", "外送"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【樂饗購】",
-                schemeType: "cube",
-                method: "綁定 App",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "無上限",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 網購 / 電商 / 遊戲
-            // ==========================================
-            {
-                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "coupang", "amazon", "博客來"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【數趣刷】",
-                schemeType: "taishin",
-                method: "直接刷卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "網購神卡",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["蝦皮", "momo", "pchome", "酷澎", "淘寶"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【玩數位】",
-                schemeType: "cube",
-                method: "直接刷卡",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "PChome 不含儲值",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["steam", "playstation", "nintendo", "netflix", "disney", "youtube", "spotify", "chatgpt"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【數趣刷】",
-                schemeType: "taishin",
-                method: "綁定扣款",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "遊戲/影音/AI",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 交通 / 加油
-            // ==========================================
-            {
-                keywords: ["高鐵", "台鐵", "uber", "yoxi", "計程車", "中油", "加油", "充電"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【天天刷】",
-                schemeType: "taishin",
-                method: "刷卡 / 綁卡",
-                rate: "3.3%",
-                sortVal: 3.3,
+                scheme: "切換【天天刷】", schemeType: "taishin",
+                method: "刷卡 / 綁卡", rate: "3.3%", sortVal: 3.3,
                 limit: "通勤族首選",
                 period: "2026/1/1 ~ 2026/6/30"
             },
             {
-                keywords: ["中油", "高鐵", "充電"],
+                group: "🚄 交通 / 通勤 / 計程車",
+                keywords: ["高鐵", "uber", "yoxi", "計程車"],
                 cardName: "國泰 CUBE 卡",
-                scheme: "切換【集精選】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "2%",
-                sortVal: 2.0,
+                scheme: "切換【趣旅行】", schemeType: "cube",
+                method: "實體卡 / 官網", rate: "3%", sortVal: 3.0,
+                limit: "注意：高鐵屬於趣旅行 (非集精選)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 加油停車 ---
+            {
+                group: "⛽ 加油 / 充電 / 停車",
+                keywords: ["中油", "加油", "充電", "停車", "全國加油"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【天天刷】", schemeType: "taishin",
+                method: "刷卡 / 綁卡", rate: "3.3%", sortVal: 3.3,
+                limit: "中油直營/全國加油",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "⛽ 加油 / 充電 / 停車",
+                keywords: ["中油", "充電", "停車"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【集精選】", schemeType: "cube",
+                method: "實體卡", rate: "2%", sortVal: 2.0,
                 limit: "中油限直營",
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // ==========================================
-            // 海外 / 旅遊 / 訂房
-            // ==========================================
+            // --- 量販超市 ---
             {
-                keywords: ["日本", "韓國", "海外", "國外", "華航", "長榮", "星宇", "agoda", "klook", "booking"],
+                group: "🛒 量販 / 超市 / 居家",
+                keywords: ["家樂福", "lopia", "大買家", "唐吉軻德", "donki"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【天天刷】", schemeType: "taishin",
+                method: "台新Pay / 實體卡", rate: "3.3%", sortVal: 3.3,
+                limit: "量販超市首選",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🛒 量販 / 超市 / 居家",
+                keywords: ["家樂福", "lopia", "全聯", "ikea", "宜家"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【集精選】", schemeType: "cube",
+                method: "實體卡 / PX Pay", rate: "2%", sortVal: 2.0,
+                limit: "全聯需綁 PX Pay",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🛒 量販 / 超市 / 居家",
+                keywords: ["ikea", "宜家", "特力屋", "hola", "宜得利"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【大筆刷】", schemeType: "taishin",
+                method: "實體卡", rate: "3.3%", sortVal: 3.3,
+                limit: "居家裝修類",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 麥當勞速食 ---
+            {
+                group: "🍔 麥當勞 / 速食 / 小額",
+                keywords: ["麥當勞", "速食"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【Pay著刷】", schemeType: "taishin",
+                method: "綁定 台灣Pay", rate: "3.8%", sortVal: 3.8,
+                limit: "需用台灣Pay (不能用Line Pay)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🍔 麥當勞 / 速食 / 小額",
+                keywords: ["麥當勞", "速食"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【樂饗購】", schemeType: "cube",
+                method: "實體卡 / Apple Pay", rate: "3%", sortVal: 3.0,
+                limit: "小額支付有回饋",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🍔 麥當勞 / 速食 / 小額",
+                keywords: ["麥當勞", "速食", "小額", "悠遊卡"],
+                cardName: "永豐大戶 (悠遊卡)",
+                scheme: null, schemeType: null,
+                method: "悠遊卡感應", rate: "3%", sortVal: 2.9,
+                limit: "上限 $100/月",
+                period: "長期有效"
+            },
+
+            // --- 超商 ---
+            {
+                group: "🏪 超商 (7-11/全家)",
+                keywords: ["7-11", "全家", "超商"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【Pay著刷】", schemeType: "taishin",
+                method: "綁定 台新Pay", rate: "3.8%", sortVal: 3.8,
+                limit: "用台新Pay (Line Pay僅2.3%)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🏪 超商 (7-11/全家)",
+                keywords: ["7-11", "全家", "超商"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【集精選】", schemeType: "cube",
+                method: "OPEN錢包 / FamiPay", rate: "2%", sortVal: 2.0,
+                limit: "需綁定錢包，實體卡無回饋",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 百貨購物 ---
+            {
+                group: "🛍️ 百貨 / 快時尚 / 購物",
+                keywords: ["新光三越", "sogo", "遠東", "101", "巨城", "漢神", "誠品", "uniqlo", "zara", "net"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【大筆刷】", schemeType: "taishin",
+                method: "台新Pay / 實體卡", rate: "3.3%", sortVal: 3.3,
+                limit: "含 skm pay / 快時尚",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🛍️ 百貨 / 快時尚 / 購物",
+                keywords: ["新光三越", "sogo", "遠東", "101", "巨城", "漢神", "誠品", "outlet"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【樂饗購】", schemeType: "cube",
+                method: "實體卡", rate: "3%", sortVal: 3.0,
+                limit: "注意：UNIQLO/ZARA 屬店中櫃不回饋",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 餐飲 ---
+            {
+                group: "🍽️ 餐廳 / 外送",
+                keywords: ["餐廳", "吃飯", "王品", "星巴克", "外送", "uber eats", "foodpanda"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【好饗刷】", schemeType: "taishin",
+                method: "實體卡 / 台新Pay", rate: "3.3%", sortVal: 3.3,
+                limit: "全台餐飲 / 外送雙雄",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "🍽️ 餐廳 / 外送",
+                keywords: ["外送", "uber eats", "foodpanda"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【樂饗購】", schemeType: "cube",
+                method: "綁定 App", rate: "3%", sortVal: 3.0,
+                limit: "僅限外送平台",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 網購電商 ---
+            {
+                group: "📱 網購 / 遊戲 / 影音",
+                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "遊戲", "netflix", "steam"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【數趣刷】", schemeType: "taishin",
+                method: "刷卡 / 綁卡", rate: "3.3%", sortVal: 3.3,
+                limit: "網購/遊戲/影音",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "📱 網購 / 遊戲 / 影音",
+                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【玩數位】", schemeType: "cube",
+                method: "直接刷卡", rate: "3%", sortVal: 3.0,
+                limit: "PChome 不含儲值",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 海外旅遊 ---
+            {
+                group: "✈️ 海外 / 機票 / 訂房",
+                keywords: ["日本", "韓國", "海外", "agoda", "klook", "機票"],
                 cardName: "匯豐旅人無限",
-                scheme: null,
-                schemeType: null,
-                method: "實體卡",
-                rate: "10元/哩",
-                sortVal: 4.5,
-                limit: "海外回饋最強，無上限",
+                scheme: null, schemeType: null,
+                method: "實體卡", rate: "10元/哩", sortVal: 4.5,
+                limit: "海外首選，回饋無上限",
                 period: "長期有效"
             },
             {
-                keywords: ["日本", "韓國", "海外", "agoda", "klook", "booking", "機票"],
+                group: "✈️ 海外 / 機票 / 訂房",
+                keywords: ["日本", "韓國", "海外", "agoda", "klook", "機票"],
                 cardName: "台新 Richart 卡",
-                scheme: "切換【玩旅刷】",
-                schemeType: "taishin",
-                method: "實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
+                scheme: "切換【玩旅刷】", schemeType: "taishin",
+                method: "實體卡", rate: "3.3%", sortVal: 3.3,
                 limit: "海外/訂房/機票",
                 period: "2026/1/1 ~ 2026/6/30"
             },
             {
-                keywords: ["日本", "韓國", "海外", "agoda", "klook", "booking"],
+                group: "✈️ 海外 / 機票 / 訂房",
+                keywords: ["日本", "韓國", "海外", "agoda", "klook"],
                 cardName: "國泰 CUBE 卡",
-                scheme: "切換【趣旅行】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "日韓泰新等國家",
+                scheme: "切換【趣旅行】", schemeType: "cube",
+                method: "實體卡", rate: "3%", sortVal: 3.0,
+                limit: "日韓泰新等指定國家",
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // ==========================================
-            // 童樂匯 (親子專屬)
-            // ==========================================
+            // --- 兜底 ---
             {
-                keywords: ["10mois", "mamas", "tiger family", "朱宗慶", "yamaha", "tutorabc"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【童樂匯】",
-                schemeType: "cube",
-                method: "官網/實體",
-                rate: "10%",
-                sortVal: 10.0,
-                limit: "需符合親子資格",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["雞湯大叔", "yayoi", "大戶屋", "貳樓", "親子餐廳", "麗寶", "六福村"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【童樂匯】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "5%",
-                sortVal: 5.0,
-                limit: "需符合親子資格",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 藥妝 / 藥局
-            // ==========================================
-            {
-                keywords: ["康是美", "屈臣氏", "大樹藥局", "丁丁", "杏一"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【天天刷】",
-                schemeType: "taishin",
-                method: "實體卡",
-                rate: "3.3%",
-                sortVal: 3.3,
-                limit: "藥妝/藥局",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-            {
-                keywords: ["康是美", "屈臣氏"],
-                cardName: "國泰 CUBE 卡",
-                scheme: "切換【樂饗購】",
-                schemeType: "cube",
-                method: "實體卡",
-                rate: "3%",
-                sortVal: 3.0,
-                limit: "限指定藥妝",
-                period: "2026/1/1 ~ 2026/6/30"
-            },
-
-            // ==========================================
-            // 兜底與通用 (Default)
-            // ==========================================
-            {
-                keywords: ["default"],
+                group: "🌟 一般消費 (無腦刷)",
+                keywords: ["default", "一般"],
                 cardName: "匯豐旅人無限",
-                scheme: null,
-                schemeType: null,
-                method: "實體卡",
-                rate: "18元/哩",
-                sortVal: 2.5,
-                limit: "國內一般消費 / 無腦刷",
+                scheme: null, schemeType: null,
+                method: "實體卡", rate: "18元/哩", sortVal: 2.5,
+                limit: "國內一般消費",
                 period: "長期有效"
             },
             {
-                keywords: ["default"],
+                group: "🌟 一般消費 (無腦刷)",
+                keywords: ["default", "一般"],
                 cardName: "永豐大戶",
-                scheme: null,
-                schemeType: null,
-                method: "實體卡",
-                rate: "2%",
-                sortVal: 2.0,
-                limit: "現金回饋 (需大戶等級)",
+                scheme: null, schemeType: null,
+                method: "實體卡", rate: "2%", sortVal: 2.0,
+                limit: "現金回饋 (大戶等級)",
                 period: "長期有效"
-            },
-            {
-                keywords: ["default"],
-                cardName: "台新 Richart 卡",
-                scheme: "切換【假日刷】",
-                schemeType: "taishin",
-                method: "Line Pay / 實體",
-                rate: "2%",
-                sortVal: 1.8,
-                limit: "限週末假日 / 一般消費兜底",
-                period: "2026/1/1 ~ 2026/6/30"
             }
         ];
 
@@ -618,18 +407,108 @@
         const input = document.getElementById('search-input');
         const resultArea = document.getElementById('result-area');
 
-        window.onload = () => findBestCard("");
+        // 初始化：直接顯示所有目錄
+        window.onload = () => renderAllGroups();
 
         input.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            findBestCard(query);
+            if (!query) {
+                renderAllGroups(); // 沒字的時候，顯示目錄
+            } else {
+                findBestCard(query); // 有字的時候，執行搜尋
+            }
         });
 
+        // 模式 1：顯示所有目錄 (Directory Mode)
+        function renderAllGroups() {
+            resultArea.innerHTML = "";
+            
+            // 取得所有不重複的 group 名稱
+            const groups = [...new Set(rules.map(r => r.group))];
+
+            groups.forEach(groupName => {
+                // 建立分類標題
+                const header = document.createElement('div');
+                header.className = 'group-header';
+                header.innerHTML = `<span>${groupName}</span>`;
+                resultArea.appendChild(header);
+
+                // 找出該分類下的所有卡片
+                const groupRules = rules.filter(r => r.group === groupName);
+                
+                // 依照 sortVal 排序
+                groupRules.sort((a, b) => b.sortVal - a.sortVal);
+
+                groupRules.forEach(card => {
+                    resultArea.innerHTML += createCardHtml(card);
+                });
+            });
+        }
+
+        // 模式 2：搜尋模式 (Search Mode)
         function findBestCard(query) {
             resultArea.innerHTML = "";
             let matches = [];
-            let isGeneral = false;
 
-            if (!query) {
-                matches = rules.filter(r => r.keywords.includes("default"));
-                resultArea.innerHTML += `<div class="result-title">🌟 無特定通路？推薦無
+            // 搜尋邏輯
+            matches = rules.filter(rule => {
+                return rule.keywords.some(k => query.includes(k) || k.includes(query));
+            });
+
+            if (matches.length === 0) {
+                resultArea.innerHTML = `<div class="result-title">🤔 資料庫找不到，建議使用一般消費卡：</div>`;
+                // 找不到時顯示 default 卡
+                const defaults = rules.filter(r => r.keywords.includes("default"));
+                defaults.forEach(card => resultArea.innerHTML += createCardHtml(card));
+            } else {
+                resultArea.innerHTML = `<div class="result-title">🔍 "${input.value}" 搜尋結果：</div>`;
+                matches.sort((a, b) => b.sortVal - a.sortVal);
+                matches.forEach((card, index) => {
+                    // 搜尋模式下，第一張卡給予強調樣式
+                    const isBest = (index === 0);
+                    resultArea.innerHTML += createCardHtml(card, isBest);
+                });
+            }
+        }
+
+        // 產生卡片 HTML 的共用函式
+        function createCardHtml(card, highlight = false) {
+            let schemeHtml = '';
+            if (card.scheme) {
+                const badgeClass = card.schemeType === 'cube' ? 'badge-scheme cube' : 'badge-scheme taishin';
+                schemeHtml = `<span class="badge ${badgeClass}">${card.scheme}</span>`;
+            }
+
+            const extraClass = highlight ? 'best-match' : '';
+            // 顯示關鍵字以便檢查
+            const keywordsText = card.keywords.join(", ");
+
+            return `
+                <div class="card ${extraClass}">
+                    <div class="card-header">
+                        <div class="card-name">${card.cardName}</div>
+                        <div class="rate">${card.rate}</div>
+                    </div>
+                    
+                    <div class="tags-row">
+                        ${schemeHtml}
+                        <span class="badge badge-method">💳 ${card.method}</span>
+                    </div>
+
+                    <div class="details">
+                        <div class="detail-row">
+                            <span class="icon">⚠️</span>
+                            <span class="limit-text">${card.limit}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="icon">📅</span>
+                            <span class="period-text">適用：${card.period}</span>
+                        </div>
+                        <div class="keywords-preview">關鍵字: ${keywordsText}</div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
