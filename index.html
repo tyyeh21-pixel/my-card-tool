@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刷卡攻略 5.0 (支付版)</title>
+    <title>刷卡攻略 6.0 (完整版)</title>
     <style>
         :root {
             --primary: #007AFF;
@@ -15,7 +15,7 @@
             --highlight: #5856d6;
             --taishin: #e60012;
             --tag-bg: #f2f2f7;
-            --pay-bg: #e8f5e9; /* 行動支付專用底色 */
+            --pay-bg: #e8f5e9;
         }
 
         body {
@@ -40,6 +40,7 @@
             z-index: 100;
         }
 
+        /* 搜尋框優化：支援 datalist */
         input[type="search"] {
             width: 100%;
             padding: 16px;
@@ -60,7 +61,6 @@
             padding-bottom: 50px;
         }
 
-        /* 分類標題樣式 */
         .group-header {
             margin: 30px 0 15px 0;
             font-size: 1.1rem;
@@ -77,6 +77,7 @@
             margin: 10px 0;
             font-size: 0.9rem;
             color: var(--sub-text);
+            text-align: center;
         }
 
         .card {
@@ -131,10 +132,21 @@
 </head>
 <body>
 
-    <h1>刷卡攻略 5.0</h1>
+    <h1>刷卡攻略 6.0</h1>
 
     <div class="search-container">
-        <input type="search" id="search-input" placeholder="輸入關鍵字 (如: 路邊攤, 繳費, 7-11...)">
+        <input type="search" id="search-input" list="merchant-list" placeholder="輸入關鍵字 (如: 屈臣氏, 繳費, 高鐵...)">
+        
+        <datalist id="merchant-list">
+            <option value="屈臣氏 / 康是美">
+            <option value="麥當勞">
+            <option value="高鐵 / 台鐵">
+            <option value="生活繳費">
+            <option value="家樂福 / Lopia">
+            <option value="新光三越">
+            <option value="日本海外">
+            <option value="7-11 / 全家">
+        </datalist>
     </div>
 
     <div id="result-area">
@@ -142,14 +154,72 @@
 
     <script>
         // -----------------------------------------------------------
-        // 資料庫設定 5.0
+        // 資料庫設定 6.0
         // -----------------------------------------------------------
         const rules = [
             
-            // --- 1. 行動支付 / 路邊攤 (優先顯示) ---
+            // --- 1. 藥妝 / 藥局 (屈臣氏/康是美) - 修正補上 ---
+            {
+                group: "💊 藥妝 / 藥局",
+                keywords: ["康是美", "cosmed"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【Pay著刷】", schemeType: "taishin",
+                method: "綁定 台新Pay", rate: "3.8%", sortVal: 3.8,
+                limit: "康是美請優先用台新Pay",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "💊 藥妝 / 藥局",
+                keywords: ["屈臣氏", "watsons", "大樹藥局", "丁丁", "杏一", "康是美"],
+                cardName: "台新 Richart 卡",
+                scheme: "切換【天天刷】", schemeType: "taishin",
+                method: "實體卡 / Apple Pay", rate: "3.3%", sortVal: 3.3,
+                limit: "藥妝通用 (屈臣氏/杏一/大樹)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                group: "💊 藥妝 / 藥局",
+                keywords: ["屈臣氏", "watsons", "康是美"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【樂饗購】", schemeType: "cube",
+                method: "實體卡", rate: "3%", sortVal: 3.0,
+                limit: "指定藥妝 (屈/康)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 2. 生活繳費 / 捷運公車 - 修正補上大戶 ---
+            {
+                group: "🧾 生活繳費 / 捷運公車",
+                keywords: ["捷運", "公車", "繳費", "水電", "瓦斯"],
+                cardName: "永豐大戶 (悠遊卡)",
+                scheme: null, schemeType: null,
+                method: "自動加值 / 嗶卡", rate: "3%", sortVal: 3.0,
+                limit: "大戶等級享自動加值回饋 (上限$100/月)",
+                period: "長期有效"
+            },
+            {
+                group: "🧾 生活繳費 / 捷運公車",
+                keywords: ["水電", "瓦斯", "繳費", "生活繳費", "學雜費"],
+                cardName: "悠遊付 (電子支付)",
+                scheme: null, schemeType: null,
+                method: "悠遊付 App", rate: "2%", sortVal: 2.0,
+                limit: "生活繳費專用",
+                period: "長期有效"
+            },
+            {
+                group: "🧾 生活繳費 / 捷運公車",
+                keywords: ["捷運", "公車", "台北捷運", "新北捷運", "交通"],
+                cardName: "悠遊卡 (實體卡)",
+                scheme: null, schemeType: null,
+                method: "直接嗶卡", rate: "最划算", sortVal: 1.5,
+                limit: "大眾運輸首選",
+                period: "長期有效"
+            },
+
+            // --- 3. 行動支付 / 路邊攤 ---
             {
                 group: "📱 行動支付 / 路邊攤 / 掃碼",
-                keywords: ["路邊攤", "小吃", "夜市", "台灣pay", "taishin pay", "台新pay", "掃碼", "神腦", "燦坤", "全國電子", "美廉社", "大樹藥局", "杏一"],
+                keywords: ["路邊攤", "小吃", "夜市", "台灣pay", "taishin pay", "台新pay", "掃碼", "神腦", "燦坤", "全國電子"],
                 cardName: "台新 Richart 卡",
                 scheme: "切換【Pay著刷】", schemeType: "taishin",
                 method: "綁定 台新Pay / 台灣Pay", rate: "3.8%", sortVal: 3.8,
@@ -166,7 +236,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 2. 超商 (7-11/全家) ---
+            // --- 4. 超商 (7-11/全家) ---
             {
                 group: "🏪 超商 (7-11/全家)",
                 keywords: ["7-11", "全家", "超商"],
@@ -186,27 +256,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 3. 生活繳費 / 交通卡 ---
-            {
-                group: "🧾 生活繳費 / 捷運公車",
-                keywords: ["水電", "瓦斯", "繳費", "生活繳費", "學雜費"],
-                cardName: "悠遊付 (電子支付)",
-                scheme: null, schemeType: null,
-                method: "悠遊付 App", rate: "2%", sortVal: 2.0,
-                limit: "生活繳費專用",
-                period: "長期有效"
-            },
-            {
-                group: "🧾 生活繳費 / 捷運公車",
-                keywords: ["捷運", "公車", "台北捷運", "新北捷運", "交通"],
-                cardName: "悠遊卡 (實體卡)",
-                scheme: null, schemeType: null,
-                method: "直接嗶卡", rate: "最划算", sortVal: 10.0,
-                limit: "大眾運輸首選",
-                period: "長期有效"
-            },
-
-            // --- 4. 麥當勞速食 ---
+            // --- 5. 麥當勞速食 ---
             {
                 group: "🍔 麥當勞 / 速食 / 小額",
                 keywords: ["麥當勞", "速食"],
@@ -235,7 +285,7 @@
                 period: "長期有效"
             },
 
-            // --- 5. 量販超市 ---
+            // --- 6. 量販超市 ---
             {
                 group: "🛒 量販 / 超市 / 居家",
                 keywords: ["家樂福", "lopia", "大買家", "唐吉軻德", "donki"],
@@ -264,7 +314,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 6. 交通通勤 (高鐵/Taxi) ---
+            // --- 7. 交通通勤 (高鐵/Taxi) ---
             {
                 group: "🚄 交通 / 通勤 / 計程車",
                 keywords: ["高鐵", "台鐵", "uber", "yoxi", "linego", "計程車"],
@@ -284,7 +334,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 7. 百貨購物 ---
+            // --- 8. 百貨購物 ---
             {
                 group: "🛍️ 百貨 / 快時尚 / 購物",
                 keywords: ["新光三越", "net", "uniqlo", "zara", "誠品"],
@@ -313,7 +363,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 8. 餐飲 ---
+            // --- 9. 餐飲 ---
             {
                 group: "🍽️ 餐廳 / 外送",
                 keywords: ["餐廳", "吃飯", "王品", "星巴克", "外送", "uber eats", "foodpanda"],
@@ -333,7 +383,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 9. 網購電商 ---
+            // --- 10. 網購電商 ---
             {
                 group: "📱 網購 / 遊戲 / 影音",
                 keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "遊戲", "netflix", "steam"],
@@ -353,7 +403,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 10. 海外旅遊 ---
+            // --- 11. 海外旅遊 ---
             {
                 group: "✈️ 海外 / 機票 / 訂房",
                 keywords: ["日本", "韓國", "海外", "agoda", "klook", "機票", "daiso", "gs25"],
@@ -382,10 +432,10 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 11. 兜底 ---
+            // --- 12. 兜底 (包含悠遊卡) ---
             {
                 group: "🌟 一般消費 (無腦刷)",
-                keywords: ["default", "一般"],
+                keywords: ["default", "一般", "悠遊卡"],
                 cardName: "匯豐旅人無限",
                 scheme: null, schemeType: null,
                 method: "實體卡", rate: "18元/哩", sortVal: 2.5,
@@ -401,8 +451,17 @@
                 limit: "現金回饋 (大戶等級)",
                 period: "長期有效"
             },
+            {
+                group: "🌟 一般消費 (無腦刷)",
+                keywords: ["default", "悠遊卡", "現金", "小額"],
+                cardName: "悠遊卡 / 現金",
+                scheme: null, schemeType: null,
+                method: "嗶卡 / 付現", rate: "-", sortVal: 0,
+                limit: "若店家不支援信用卡，請用悠遊卡",
+                period: "長期有效"
+            },
 
-            // --- 12. 限時活動 (移到底部) ---
+            // --- 13. 限時活動 (底部) ---
             {
                 group: "🔥 限時活動 / 壽星",
                 keywords: ["大港開唱", "瘋大港", "拓元", "klook", "高雄住宿"],
@@ -438,7 +497,6 @@
         const input = document.getElementById('search-input');
         const resultArea = document.getElementById('result-area');
 
-        // 初始化：直接顯示所有目錄
         window.onload = () => renderAllGroups();
 
         input.addEventListener('input', (e) => {
@@ -452,7 +510,6 @@
 
         function renderAllGroups() {
             resultArea.innerHTML = "";
-            // 使用 Set 確保 group 順序依照 rules 陣列原本的順序出現 (Set 會保留插入順序)
             const groups = [...new Set(rules.map(r => r.group))];
 
             groups.forEach(groupName => {
@@ -477,7 +534,7 @@
             });
 
             if (matches.length === 0) {
-                resultArea.innerHTML = `<div class="result-title">🤔 資料庫找不到，建議使用一般消費卡：</div>`;
+                resultArea.innerHTML = `<div class="result-title">🤔 資料庫找不到，建議使用：</div>`;
                 const defaults = rules.filter(r => r.keywords.includes("default"));
                 defaults.forEach(card => resultArea.innerHTML += createCardHtml(card));
             } else {
