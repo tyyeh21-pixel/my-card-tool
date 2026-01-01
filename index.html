@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刷卡攻略助手</title>
+    <title>刷卡快搜</title>
     <style>
-        /* CSS 樣式：手機優先設計 */
         :root {
             --primary: #007AFF;
             --bg: #f2f2f7;
@@ -13,10 +12,11 @@
             --text: #1c1c1e;
             --sub-text: #8e8e93;
             --warning: #ff3b30;
+            --success: #34c759;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
@@ -26,28 +26,36 @@
             align-items: center;
         }
 
-        h1 {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            color: var(--sub-text);
-        }
+        h1 { font-size: 1.4rem; margin-bottom: 20px; color: var(--text); font-weight: 800; }
 
-        /* 選擇器樣式 */
-        .input-group {
+        /* 搜尋區塊樣式 */
+        .search-container {
             width: 100%;
             max-width: 400px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            position: relative;
         }
 
-        select {
+        input[type="search"] {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             font-size: 18px;
             border-radius: 12px;
-            border: 1px solid #d1d1d6;
+            border: none;
             background-color: var(--card-bg);
-            appearance: none; /* 移除預設箭頭 */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+        }
+        
+        input[type="search"]:focus {
+            outline: 2px solid var(--primary);
+        }
+
+        .hint-text {
+            font-size: 0.85rem;
+            color: var(--sub-text);
+            margin-top: 8px;
+            text-align: center;
         }
 
         /* 結果卡片樣式 */
@@ -56,183 +64,244 @@
             max-width: 400px;
         }
 
+        .result-title {
+            margin: 20px 0 10px 5px;
+            font-size: 0.9rem;
+            color: var(--sub-text);
+            font-weight: 600;
+        }
+
         .card {
             background: var(--card-bg);
             border-radius: 16px;
             padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border-left: 6px solid var(--primary);
-            transition: transform 0.2s;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-left: 5px solid transparent;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* 第一名的卡片特別顯眼 */
+        .card.best-match {
+            border-left: 5px solid var(--primary);
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(0,122,255,0.15);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
-        .bank-name {
-            font-size: 1.3rem;
-            font-weight: bold;
-        }
-
-        .rate {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
+        .card-name { font-size: 1.2rem; font-weight: bold; }
+        .rate { font-size: 1.4rem; font-weight: 900; color: var(--primary); }
         .method {
-            font-size: 1.1rem;
+            display: inline-block;
+            background-color: #f0f2f5;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .best-match .method {
             background-color: #e5f1ff;
             color: var(--primary);
-            padding: 5px 10px;
-            border-radius: 8px;
-            display: inline-block;
-            margin-bottom: 10px;
-            font-weight: 600;
         }
 
-        .limit-info {
-            font-size: 0.9rem;
-            color: var(--warning);
-            background-color: #fff2f1;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            line-height: 1.4;
-        }
-        
-        .empty-state {
-            text-align: center;
-            color: var(--sub-text);
-            margin-top: 50px;
+        .note { font-size: 0.85rem; color: var(--sub-text); line-height: 1.4; }
+        .limit { color: var(--warning); font-weight: 500; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
-    <h1>今天要在哪裡消費？</h1>
+    <h1>要去哪裡消費？</h1>
 
-    <div class="input-group">
-        <select id="merchant-select">
-            <option value="" disabled selected>請選擇通路...</option>
-            </select>
+    <div class="search-container">
+        <input type="search" id="search-input" list="merchant-list" placeholder="輸入關鍵字 (如: 7-11, 網購...)">
+        
+        <datalist id="merchant-list">
+            <option value="7-11 / 全家">
+            <option value="麥當勞">
+            <option value="星巴克">
+            <option value="蝦皮 / Momo">
+            <option value="全聯">
+            <option value="加油">
+            <option value="日本海外">
+            <option value="一般消費 (無腦刷)">
+        </datalist>
+        <div class="hint-text">💡 支援模糊搜尋，也可以直接打「Line Pay」找卡</div>
     </div>
 
     <div id="result-area">
-        <div class="empty-state">選擇上方通路以查看最佳刷卡策略</div>
-    </div>
+        </div>
 
     <script>
-        // ----------------------------------------------------
-        // 1. 資料庫區域 (你可以隨時在這裡修改或新增規則)
-        // ----------------------------------------------------
-        const creditCardData = [
+        // -----------------------------------------------------------
+        // 1. 核心資料庫：這裡定義「什麼關鍵字」對應「哪張卡」
+        // -----------------------------------------------------------
+        const rules = [
+            // --- 特定通路優先 ---
             {
-                category: "便利商店 (7-11/全家)",
-                cards: [
-                    {
-                        name: "國泰 CUBE 卡",
-                        method: "OPEN錢包 / FamiPay",
-                        rate: "3%",
-                        limit: "選集精選方案。回饋無上限。"
-                    },
-                    {
-                        name: "台新 GoGo",
-                        method: "LINE Pay / 台新Pay",
-                        rate: "3.8%",
-                        limit: "上限 $1000/月 (刷 $30,303 封頂)。"
-                    }
-                ]
+                keywords: ["7-11", "seven", "全家", "超商", "便利商店"],
+                cardName: "台新 GoGo (Richard)",
+                method: "Line Pay / 台新Pay",
+                rate: "3.8%",
+                note: "每月上限 $1000 (刷3萬封頂)。"
             },
             {
-                category: "一般網購 (蝦皮/Momo)",
-                cards: [
-                    {
-                        name: "華南 i網購",
-                        method: "直接刷卡",
-                        rate: "3.5%",
-                        limit: "上限 $350/月 (刷 $10,000 封頂)。"
-                    },
-                    {
-                        name: "玉山 U Bear",
-                        method: "直接刷卡",
-                        rate: "3%",
-                        limit: "上限 $200/月 (刷 $6,666 封頂)。"
-                    }
-                ]
+                keywords: ["7-11", "全家", "超商"],
+                cardName: "匯豐旅人",
+                method: "街口支付",
+                rate: "18元/哩",
+                note: "累積哩程用，無上限。"
             },
             {
-                category: "餐廳 / 吃飯",
-                cards: [
-                    {
-                        name: "聯邦吉鶴卡",
-                        method: "Apple Pay (國內)",
-                        rate: "2%",
-                        limit: "無上限。若為日系餐廳可能有加碼。"
-                    },
-                    {
-                        name: "匯豐 匯鑽卡",
-                        method: "街口支付",
-                        rate: "3% (翻倍 6%)",
-                        limit: "上限 2000 點。需帳戶滿額才可翻倍。"
-                    }
-                ]
+                keywords: ["全聯", "pxmart"],
+                cardName: "國泰 Cube",
+                method: "全支付 / PX Pay",
+                rate: "3%",
+                note: "記得切換【集精選】權益。"
             },
             {
-                category: "海外消費 (日本)",
-                cards: [
-                    {
-                        name: "富邦 J 卡",
-                        method: "實體卡 / Apple Pay",
-                        rate: "3%",
-                        limit: "需登錄，加碼部分有上限。"
-                    }
-                ]
+                keywords: ["蝦皮", "momo", "pchome", "網購", "淘寶"],
+                cardName: "台新 GoGo",
+                method: "Line Pay (若有) / 直接刷",
+                rate: "3.8%",
+                note: "每月上限 $1000。"
+            },
+            {
+                keywords: ["蝦皮", "momo", "網購"],
+                cardName: "匯豐旅人無限",
+                method: "實體卡輸入",
+                rate: "18元/哩",
+                note: "如果 GoGo 爆了就刷這張。"
+            },
+            
+            // --- 行動支付通用規則 ---
+            {
+                keywords: ["line pay", "linepay", "lp", "賴配"],
+                cardName: "台新 GoGo",
+                method: "綁定 Line Pay",
+                rate: "3.8%",
+                note: "行動支付神卡。"
+            },
+            {
+                keywords: ["街口", "jkopay"],
+                cardName: "匯豐旅人無限",
+                method: "綁定街口",
+                rate: "18元/哩",
+                note: "水電瓦斯/超商都可用。"
+            },
+
+            // --- 海外與旅遊 ---
+            {
+                keywords: ["日本", "韓國", "海外", "國外", "飛機", "agoda"],
+                cardName: "匯豐旅人無限",
+                method: "實體卡",
+                rate: "10元/哩",
+                note: "海外回饋最強。"
+            },
+            {
+                keywords: ["日本", "韓國", "海外"],
+                cardName: "國泰 Cube",
+                method: "實體卡",
+                rate: "3%",
+                note: "切換【趣旅行】。"
+            },
+
+            // --- 兜底神卡 (如果都沒對應到，會顯示這些) ---
+            {
+                keywords: ["general", "default"], // 這是系統保留字
+                cardName: "匯豐旅人無限",
+                method: "實體卡",
+                rate: "18元/哩",
+                note: "一般消費無腦刷，累積哩程。"
+            },
+            {
+                keywords: ["general", "default"],
+                cardName: "永豐大戶",
+                method: "實體卡 / Apple Pay",
+                rate: "2%",
+                note: "現金回饋，需大戶等級。"
+            },
+            {
+                keywords: ["general", "default"],
+                cardName: "國泰 Cube",
+                method: "實體卡",
+                rate: "0.3%~3%",
+                note: "若不在四大權益內僅 0.3%，請小心使用。"
             }
         ];
 
-        // ----------------------------------------------------
-        // 2. 程式邏輯區域
-        // ----------------------------------------------------
-        const select = document.getElementById('merchant-select');
+        // -----------------------------------------------------------
+        // 2. 搜尋與配對邏輯
+        // -----------------------------------------------------------
+        const input = document.getElementById('search-input');
         const resultArea = document.getElementById('result-area');
 
-        // 初始化下拉選單
-        creditCardData.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.category;
-            option.textContent = item.category;
-            select.appendChild(option);
+        // 頁面載入時，先顯示「一般消費」建議
+        window.onload = () => findBestCard("");
+
+        input.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            findBestCard(query);
         });
 
-        // 當選擇改變時
-        select.addEventListener('change', (e) => {
-            const selectedCategory = e.target.value;
-            const data = creditCardData.find(item => item.category === selectedCategory);
-            
-            resultArea.innerHTML = ''; // 清空舊結果
+        function findBestCard(query) {
+            resultArea.innerHTML = "";
+            let matches = [];
+            let isGeneral = false;
 
-            if (data && data.cards.length > 0) {
-                // 根據回饋率排序 (簡單字串比對，若需精確數學排序需額外處理)
-                data.cards.forEach(card => {
-                    const cardHtml = `
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="bank-name">${card.name}</div>
-                                <div class="rate">${card.rate}</div>
-                            </div>
-                            <div class="method">👉 ${card.method}</div>
-                            <div class="limit-info">⚠️ ${card.limit}</div>
-                        </div>
-                    `;
-                    resultArea.innerHTML += cardHtml;
+            if (!query) {
+                // 如果沒輸入，顯示預設通用卡
+                matches = rules.filter(r => r.keywords.includes("default"));
+                resultArea.innerHTML += `<div class="result-title">🌟 一般消費 / 無腦刷推薦</div>`;
+                isGeneral = true;
+            } else {
+                // 搜尋邏輯：檢查關鍵字陣列是否包含輸入的字
+                matches = rules.filter(rule => {
+                    return rule.keywords.some(k => query.includes(k) || k.includes(query));
                 });
+
+                // 如果完全找不到，就顯示通用卡
+                if (matches.length === 0) {
+                    matches = rules.filter(r => r.keywords.includes("default"));
+                    resultArea.innerHTML += `<div class="result-title">🤔 找不到特定通路，建議使用一般消費卡：</div>`;
+                    isGeneral = true;
+                } else {
+                    resultArea.innerHTML += `<div class="result-title">🔍 "${input.value}" 的最佳解：</div>`;
+                }
             }
-        });
+
+            // 渲染卡片
+            matches.forEach((card, index) => {
+                // 如果是搜尋結果的第一張，給它特殊樣式 (best-match)
+                const isBest = (!isGeneral && index === 0) ? 'best-match' : '';
+                
+                const html = `
+                    <div class="card ${isBest}">
+                        <div class="card-header">
+                            <div class="card-name">${card.cardName}</div>
+                            <div class="rate">${card.rate}</div>
+                        </div>
+                        <div class="method">${card.method}</div>
+                        <div class="note">
+                            ${card.note}
+                        </div>
+                    </div>
+                `;
+                resultArea.innerHTML += html;
+            });
+        }
     </script>
 </body>
 </html>
