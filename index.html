@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刷卡攻略助手</title>
+    <style>
+        /* CSS 樣式：手機優先設計 */
+        :root {
+            --primary: #007AFF;
+            --bg: #f2f2f7;
+            --card-bg: #ffffff;
+            --text: #1c1c1e;
+            --sub-text: #8e8e93;
+            --warning: #ff3b30;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--sub-text);
+        }
+
+        /* 選擇器樣式 */
+        .input-group {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 30px;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 12px;
+            border: 1px solid #d1d1d6;
+            background-color: var(--card-bg);
+            appearance: none; /* 移除預設箭頭 */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* 結果卡片樣式 */
+        #result-area {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 6px solid var(--primary);
+            transition: transform 0.2s;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bank-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .rate {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .method {
+            font-size: 1.1rem;
+            background-color: #e5f1ff;
+            color: var(--primary);
+            padding: 5px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .limit-info {
+            font-size: 0.9rem;
+            color: var(--warning);
+            background-color: #fff2f1;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: var(--sub-text);
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>今天要在哪裡消費？</h1>
+
+    <div class="input-group">
+        <select id="merchant-select">
+            <option value="" disabled selected>請選擇通路...</option>
+            </select>
+    </div>
+
+    <div id="result-area">
+        <div class="empty-state">選擇上方通路以查看最佳刷卡策略</div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // 1. 資料庫區域 (你可以隨時在這裡修改或新增規則)
+        // ----------------------------------------------------
+        const creditCardData = [
+            {
+                category: "便利商店 (7-11/全家)",
+                cards: [
+                    {
+                        name: "國泰 CUBE 卡",
+                        method: "OPEN錢包 / FamiPay",
+                        rate: "3%",
+                        limit: "選集精選方案。回饋無上限。"
+                    },
+                    {
+                        name: "台新 GoGo",
+                        method: "LINE Pay / 台新Pay",
+                        rate: "3.8%",
+                        limit: "上限 $1000/月 (刷 $30,303 封頂)。"
+                    }
+                ]
+            },
+            {
+                category: "一般網購 (蝦皮/Momo)",
+                cards: [
+                    {
+                        name: "華南 i網購",
+                        method: "直接刷卡",
+                        rate: "3.5%",
+                        limit: "上限 $350/月 (刷 $10,000 封頂)。"
+                    },
+                    {
+                        name: "玉山 U Bear",
+                        method: "直接刷卡",
+                        rate: "3%",
+                        limit: "上限 $200/月 (刷 $6,666 封頂)。"
+                    }
+                ]
+            },
+            {
+                category: "餐廳 / 吃飯",
+                cards: [
+                    {
+                        name: "聯邦吉鶴卡",
+                        method: "Apple Pay (國內)",
+                        rate: "2%",
+                        limit: "無上限。若為日系餐廳可能有加碼。"
+                    },
+                    {
+                        name: "匯豐 匯鑽卡",
+                        method: "街口支付",
+                        rate: "3% (翻倍 6%)",
+                        limit: "上限 2000 點。需帳戶滿額才可翻倍。"
+                    }
+                ]
+            },
+            {
+                category: "海外消費 (日本)",
+                cards: [
+                    {
+                        name: "富邦 J 卡",
+                        method: "實體卡 / Apple Pay",
+                        rate: "3%",
+                        limit: "需登錄，加碼部分有上限。"
+                    }
+                ]
+            }
+        ];
+
+        // ----------------------------------------------------
+        // 2. 程式邏輯區域
+        // ----------------------------------------------------
+        const select = document.getElementById('merchant-select');
+        const resultArea = document.getElementById('result-area');
+
+        // 初始化下拉選單
+        creditCardData.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.category;
+            option.textContent = item.category;
+            select.appendChild(option);
+        });
+
+        // 當選擇改變時
+        select.addEventListener('change', (e) => {
+            const selectedCategory = e.target.value;
+            const data = creditCardData.find(item => item.category === selectedCategory);
+            
+            resultArea.innerHTML = ''; // 清空舊結果
+
+            if (data && data.cards.length > 0) {
+                // 根據回饋率排序 (簡單字串比對，若需精確數學排序需額外處理)
+                data.cards.forEach(card => {
+                    const cardHtml = `
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="bank-name">${card.name}</div>
+                                <div class="rate">${card.rate}</div>
+                            </div>
+                            <div class="method">👉 ${card.method}</div>
+                            <div class="limit-info">⚠️ ${card.limit}</div>
+                        </div>
+                    `;
+                    resultArea.innerHTML += cardHtml;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
