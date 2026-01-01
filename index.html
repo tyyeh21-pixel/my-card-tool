@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刷卡快搜</title>
+    <title>刷卡快搜 2.0</title>
     <style>
         :root {
             --primary: #007AFF;
-            --bg: #f2f2f7;
+            --bg: #f5f5f7;
             --card-bg: #ffffff;
-            --text: #1c1c1e;
-            --sub-text: #8e8e93;
+            --text: #1d1d1f;
+            --sub-text: #86868b;
             --warning: #ff3b30;
-            --success: #34c759;
+            --highlight: #5856d6; /* 紫色，用於 CUBE 方案 */
+            --tag-bg: #f2f2f7;
         }
 
         body {
@@ -26,119 +27,158 @@
             align-items: center;
         }
 
-        h1 { font-size: 1.4rem; margin-bottom: 20px; color: var(--text); font-weight: 800; }
+        h1 { font-size: 1.4rem; margin-bottom: 20px; font-weight: 800; }
 
-        /* 搜尋區塊樣式 */
+        /* 搜尋區塊 */
         .search-container {
             width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
-            position: relative;
+            max-width: 450px;
+            margin-bottom: 25px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
         }
 
         input[type="search"] {
             width: 100%;
             padding: 16px;
             font-size: 18px;
-            border-radius: 12px;
-            border: none;
-            background-color: var(--card-bg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+            border-radius: 14px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            box-sizing: border-box;
         }
         
         input[type="search"]:focus {
             outline: 2px solid var(--primary);
         }
 
-        .hint-text {
-            font-size: 0.85rem;
-            color: var(--sub-text);
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* 結果卡片樣式 */
+        /* 結果列表 */
         #result-area {
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
+            padding-bottom: 50px;
         }
 
         .result-title {
-            margin: 20px 0 10px 5px;
+            margin: 10px 0 10px 5px;
             font-size: 0.9rem;
             color: var(--sub-text);
             font-weight: 600;
         }
 
+        /* 卡片本體 */
         .card {
             background: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 20px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            border-left: 5px solid transparent;
-            animation: fadeIn 0.3s ease-in-out;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
         }
-
-        /* 第一名的卡片特別顯眼 */
+        
+        /* 冠軍卡片特效 */
         .card.best-match {
-            border-left: 5px solid var(--primary);
+            border: 2px solid var(--primary);
             background: #fff;
-            box-shadow: 0 8px 20px rgba(0,122,255,0.15);
+            box-shadow: 0 8px 25px rgba(0,122,255,0.12);
+            transform: scale(1.02);
+        }
+        
+        .card.best-match::after {
+            content: "👑 推薦";
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            border-bottom-left-radius: 12px;
+            font-weight: bold;
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+            align-items: baseline;
+            margin-bottom: 5px;
         }
 
-        .card-name { font-size: 1.2rem; font-weight: bold; }
-        .rate { font-size: 1.4rem; font-weight: 900; color: var(--primary); }
-        .method {
-            display: inline-block;
-            background-color: #f0f2f5;
-            color: #333;
+        .card-name { font-size: 1.25rem; font-weight: 800; color: #000; }
+        .rate { font-size: 1.6rem; font-weight: 900; color: var(--primary); }
+
+        /* CUBE 方案與支付方式標籤 */
+        .tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .badge {
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .best-match .method {
-            background-color: #e5f1ff;
-            color: var(--primary);
         }
 
-        .note { font-size: 0.85rem; color: var(--sub-text); line-height: 1.4; }
-        .limit { color: var(--warning); font-weight: 500; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+        .badge-scheme {
+            background-color: #f3f2ff;
+            color: var(--highlight);
+            border: 1px solid #dcdaff;
         }
+        
+        .badge-method {
+            background-color: var(--tag-bg);
+            color: #333;
+        }
+
+        /* 詳細資訊區 */
+        .details {
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .detail-row {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .detail-row:last-child { margin-bottom: 0; }
+        
+        .icon { margin-right: 6px; min-width: 18px; }
+        
+        .limit-text { color: var(--warning); }
+        .period-text { color: var(--sub-text); font-size: 0.85rem; }
+
     </style>
 </head>
 <body>
 
-    <h1>要去哪裡消費？</h1>
+    <h1>刷卡攻略 2.0</h1>
 
     <div class="search-container">
-        <input type="search" id="search-input" list="merchant-list" placeholder="輸入關鍵字 (如: 7-11, 網購...)">
+        <input type="search" id="search-input" list="merchant-list" placeholder="輸入：誠品, 7-11, 日本...">
         
         <datalist id="merchant-list">
+            <option value="誠品生活">
+            <option value="SOGO / 新光三越">
             <option value="7-11 / 全家">
-            <option value="麥當勞">
-            <option value="星巴克">
-            <option value="蝦皮 / Momo">
-            <option value="全聯">
-            <option value="加油">
             <option value="日本海外">
-            <option value="一般消費 (無腦刷)">
+            <option value="Agoda / 訂房">
+            <option value="高鐵 / 台鐵">
+            <option value="全聯">
+            <option value="保費">
         </datalist>
-        <div class="hint-text">💡 支援模糊搜尋，也可以直接打「Line Pay」找卡</div>
     </div>
 
     <div id="result-area">
@@ -146,109 +186,128 @@
 
     <script>
         // -----------------------------------------------------------
-        // 1. 核心資料庫：這裡定義「什麼關鍵字」對應「哪張卡」
+        // 資料庫設定區
+        // sortVal: 用於排序，數字越大排越前面 (哩程卡建議設 3~5 之間)
+        // scheme: 專用於 CUBE 卡的方案名稱，沒有則填 null
         // -----------------------------------------------------------
         const rules = [
-            // --- 特定通路優先 ---
+            // --- 誠品 / 百貨 (範例：CUBE 樂饗購 vs 大戶) ---
             {
-                keywords: ["7-11", "seven", "全家", "超商", "便利商店"],
-                cardName: "台新 GoGo (Richard)",
-                method: "Line Pay / 台新Pay",
+                keywords: ["誠品", "eslite", "百貨", "sogo", "新光三越", "遠東"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【樂饗購】", 
+                method: "實體卡 / Apple Pay",
+                rate: "3%",
+                sortVal: 3.0,
+                limit: "回饋無上限 (小樹點)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                keywords: ["誠品", "eslite", "百貨", "餐廳"],
+                cardName: "永豐大戶卡",
+                scheme: null,
+                method: "實體卡 / Apple Pay",
+                rate: "2%~7%",
+                sortVal: 2.5, // 雖然最高7%，但大戶有上限，所以我設比Cube低一點，讓Cube排第一
+                limit: "國內1%無上限 + 1%任務 + 5%指定(上限300元/月)",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+            {
+                keywords: ["誠品", "eslite", "百貨"],
+                cardName: "玉山國旅卡",
+                scheme: null,
+                method: "實體卡",
+                rate: "1%",
+                sortVal: 1.0,
+                limit: "現金回饋無上限",
+                period: "長期有效"
+            },
+
+            // --- 超商 / Line Pay ---
+            {
+                keywords: ["7-11", "全家", "超商", "line pay", "linepay"],
+                cardName: "台新 GoGo",
+                scheme: null,
+                method: "綁定 Line Pay",
                 rate: "3.8%",
-                note: "每月上限 $1000 (刷3萬封頂)。"
+                sortVal: 3.8,
+                limit: "上限 $1000/月 (刷 $30,303 封頂)",
+                period: "2025/12/1 ~ 2026/5/31"
             },
             {
                 keywords: ["7-11", "全家", "超商"],
-                cardName: "匯豐旅人",
-                method: "街口支付",
-                rate: "18元/哩",
-                note: "累積哩程用，無上限。"
-            },
-            {
-                keywords: ["全聯", "pxmart"],
-                cardName: "國泰 Cube",
-                method: "全支付 / PX Pay",
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【集精選】",
+                method: "OPEN錢包 / FamiPay",
                 rate: "3%",
-                note: "記得切換【集精選】權益。"
-            },
-            {
-                keywords: ["蝦皮", "momo", "pchome", "網購", "淘寶"],
-                cardName: "台新 GoGo",
-                method: "Line Pay (若有) / 直接刷",
-                rate: "3.8%",
-                note: "每月上限 $1000。"
-            },
-            {
-                keywords: ["蝦皮", "momo", "網購"],
-                cardName: "匯豐旅人無限",
-                method: "實體卡輸入",
-                rate: "18元/哩",
-                note: "如果 GoGo 爆了就刷這張。"
-            },
-            
-            // --- 行動支付通用規則 ---
-            {
-                keywords: ["line pay", "linepay", "lp", "賴配"],
-                cardName: "台新 GoGo",
-                method: "綁定 Line Pay",
-                rate: "3.8%",
-                note: "行動支付神卡。"
-            },
-            {
-                keywords: ["街口", "jkopay"],
-                cardName: "匯豐旅人無限",
-                method: "綁定街口",
-                rate: "18元/哩",
-                note: "水電瓦斯/超商都可用。"
+                sortVal: 3.0,
+                limit: "注意：實體卡/Apple Pay 沒回饋，要用綁定錢包",
+                period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 海外與旅遊 ---
+            // --- 日本 / 海外旅遊 ---
             {
-                keywords: ["日本", "韓國", "海外", "國外", "飛機", "agoda"],
+                keywords: ["日本", "韓國", "海外", "國外"],
                 cardName: "匯豐旅人無限",
+                scheme: null,
                 method: "實體卡",
                 rate: "10元/哩",
-                note: "海外回饋最強。"
+                sortVal: 4.5, // 我把哩程價值設很高，讓它排第一
+                limit: "無上限，最優解",
+                period: "長期有效"
             },
             {
                 keywords: ["日本", "韓國", "海外"],
-                cardName: "國泰 Cube",
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【趣旅行】",
                 method: "實體卡",
                 rate: "3%",
-                note: "切換【趣旅行】。"
+                sortVal: 3.0,
+                limit: "回饋無上限 (小樹點)",
+                period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 兜底神卡 (如果都沒對應到，會顯示這些) ---
+            // --- 交通 (高鐵) ---
             {
-                keywords: ["general", "default"], // 這是系統保留字
+                keywords: ["高鐵", "台鐵"],
+                cardName: "國泰 CUBE 卡",
+                scheme: "切換【集精選】", // 假設集精選有高鐵
+                method: "實體卡 / Apple Pay",
+                rate: "3%",
+                sortVal: 3.0,
+                limit: "無上限",
+                period: "2026/1/1 ~ 2026/6/30"
+            },
+
+            // --- 兜底 (General) ---
+            {
+                keywords: ["default"],
                 cardName: "匯豐旅人無限",
+                scheme: null,
                 method: "實體卡",
                 rate: "18元/哩",
-                note: "一般消費無腦刷，累積哩程。"
+                sortVal: 2.0,
+                limit: "國內無腦刷",
+                period: "長期有效"
             },
             {
-                keywords: ["general", "default"],
+                keywords: ["default"],
                 cardName: "永豐大戶",
-                method: "實體卡 / Apple Pay",
-                rate: "2%",
-                note: "現金回饋，需大戶等級。"
-            },
-            {
-                keywords: ["general", "default"],
-                cardName: "國泰 Cube",
+                scheme: null,
                 method: "實體卡",
-                rate: "0.3%~3%",
-                note: "若不在四大權益內僅 0.3%，請小心使用。"
+                rate: "2%",
+                sortVal: 1.5,
+                limit: "需大戶等級 (1%無上限+1%上限600元)",
+                period: "2026/1/1 ~ 2026/6/30"
             }
         ];
 
         // -----------------------------------------------------------
-        // 2. 搜尋與配對邏輯
+        // 程式邏輯區
         // -----------------------------------------------------------
         const input = document.getElementById('search-input');
         const resultArea = document.getElementById('result-area');
 
-        // 頁面載入時，先顯示「一般消費」建議
         window.onload = () => findBestCard("");
 
         input.addEventListener('input', (e) => {
@@ -262,40 +321,56 @@
             let isGeneral = false;
 
             if (!query) {
-                // 如果沒輸入，顯示預設通用卡
                 matches = rules.filter(r => r.keywords.includes("default"));
-                resultArea.innerHTML += `<div class="result-title">🌟 一般消費 / 無腦刷推薦</div>`;
+                resultArea.innerHTML += `<div class="result-title">🌟 無特定通路？推薦無腦刷：</div>`;
                 isGeneral = true;
             } else {
-                // 搜尋邏輯：檢查關鍵字陣列是否包含輸入的字
                 matches = rules.filter(rule => {
                     return rule.keywords.some(k => query.includes(k) || k.includes(query));
                 });
 
-                // 如果完全找不到，就顯示通用卡
                 if (matches.length === 0) {
                     matches = rules.filter(r => r.keywords.includes("default"));
-                    resultArea.innerHTML += `<div class="result-title">🤔 找不到特定通路，建議使用一般消費卡：</div>`;
+                    resultArea.innerHTML += `<div class="result-title">🤔 找不到 "${input.value}"，建議使用：</div>`;
                     isGeneral = true;
                 } else {
-                    resultArea.innerHTML += `<div class="result-title">🔍 "${input.value}" 的最佳解：</div>`;
+                    resultArea.innerHTML += `<div class="result-title">🔍 "${input.value}" 最佳刷卡策略：</div>`;
                 }
             }
 
-            // 渲染卡片
+            // --- 關鍵排序邏輯 ---
+            // 依照 sortVal 由大到小排序
+            matches.sort((a, b) => b.sortVal - a.sortVal);
+
             matches.forEach((card, index) => {
-                // 如果是搜尋結果的第一張，給它特殊樣式 (best-match)
                 const isBest = (!isGeneral && index === 0) ? 'best-match' : '';
                 
+                // 處理 Scheme 標籤 (如果有才顯示)
+                const schemeHtml = card.scheme 
+                    ? `<span class="badge badge-scheme">📱 ${card.scheme}</span>` 
+                    : '';
+
                 const html = `
                     <div class="card ${isBest}">
                         <div class="card-header">
                             <div class="card-name">${card.cardName}</div>
                             <div class="rate">${card.rate}</div>
                         </div>
-                        <div class="method">${card.method}</div>
-                        <div class="note">
-                            ${card.note}
+                        
+                        <div class="tags-row">
+                            ${schemeHtml}
+                            <span class="badge badge-method">💳 ${card.method}</span>
+                        </div>
+
+                        <div class="details">
+                            <div class="detail-row">
+                                <span class="icon">⚠️</span>
+                                <span class="limit-text">${card.limit}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="icon">📅</span>
+                                <span class="period-text">適用：${card.period}</span>
+                            </div>
                         </div>
                     </div>
                 `;
