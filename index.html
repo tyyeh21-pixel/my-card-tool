@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刷卡攻略 6.0 (完整版)</title>
+    <title>刷卡攻略 7.0 (智慧排序)</title>
     <style>
         :root {
             --primary: #007AFF;
@@ -40,7 +40,6 @@
             z-index: 100;
         }
 
-        /* 搜尋框優化：支援 datalist */
         input[type="search"] {
             width: 100%;
             padding: 16px;
@@ -132,12 +131,13 @@
 </head>
 <body>
 
-    <h1>刷卡攻略 6.0</h1>
+    <h1>刷卡攻略 7.0</h1>
 
     <div class="search-container">
-        <input type="search" id="search-input" list="merchant-list" placeholder="輸入關鍵字 (如: 屈臣氏, 繳費, 高鐵...)">
+        <input type="search" id="search-input" list="merchant-list" placeholder="輸入關鍵字 (如: Netflix, 7-11...)">
         
         <datalist id="merchant-list">
+            <option value="Netflix / YouTube">
             <option value="屈臣氏 / 康是美">
             <option value="麥當勞">
             <option value="高鐵 / 台鐵">
@@ -154,11 +154,11 @@
 
     <script>
         // -----------------------------------------------------------
-        // 資料庫設定 6.0
+        // 資料庫設定 7.0
         // -----------------------------------------------------------
         const rules = [
             
-            // --- 1. 藥妝 / 藥局 (屈臣氏/康是美) - 修正補上 ---
+            // --- 1. 藥妝 / 藥局 ---
             {
                 group: "💊 藥妝 / 藥局",
                 keywords: ["康是美", "cosmed"],
@@ -187,7 +187,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 2. 生活繳費 / 捷運公車 - 修正補上大戶 ---
+            // --- 2. 生活繳費 / 捷運公車 ---
             {
                 group: "🧾 生活繳費 / 捷運公車",
                 keywords: ["捷運", "公車", "繳費", "水電", "瓦斯"],
@@ -236,7 +236,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 4. 超商 (7-11/全家) ---
+            // --- 4. 超商 ---
             {
                 group: "🏪 超商 (7-11/全家)",
                 keywords: ["7-11", "全家", "超商"],
@@ -263,7 +263,7 @@
                 cardName: "台新 Richart 卡",
                 scheme: "切換【Pay著刷】", schemeType: "taishin",
                 method: "綁定 台灣Pay", rate: "3.8%", sortVal: 3.8,
-                limit: "麥當勞請掃台灣Pay (非Line Pay)",
+                limit: "麥當勞請掃台灣Pay",
                 period: "2026/1/1 ~ 2026/6/30"
             },
             {
@@ -314,7 +314,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 7. 交通通勤 (高鐵/Taxi) ---
+            // --- 7. 交通通勤 ---
             {
                 group: "🚄 交通 / 通勤 / 計程車",
                 keywords: ["高鐵", "台鐵", "uber", "yoxi", "linego", "計程車"],
@@ -334,14 +334,14 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 8. 百貨購物 ---
+            // --- 8. 百貨購物 (已修正 NET 衝突問題) ---
             {
                 group: "🛍️ 百貨 / 快時尚 / 購物",
                 keywords: ["新光三越", "net", "uniqlo", "zara", "誠品"],
                 cardName: "台新 Richart 卡",
                 scheme: "切換【Pay著刷】", schemeType: "taishin",
                 method: "綁定 台新Pay", rate: "3.8%", sortVal: 3.8,
-                limit: "新光三越/NET 優先用台新Pay",
+                limit: "NET服飾/新光三越 優先用台新Pay",
                 period: "2026/1/1 ~ 2026/6/30"
             },
             {
@@ -383,10 +383,10 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 10. 網購電商 ---
+            // --- 10. 網購電商 (已補上 YouTube/Netflix) ---
             {
                 group: "📱 網購 / 遊戲 / 影音",
-                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "遊戲", "netflix", "steam"],
+                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "遊戲", "netflix", "steam", "youtube", "spotify"],
                 cardName: "台新 Richart 卡",
                 scheme: "切換【數趣刷】", schemeType: "taishin",
                 method: "刷卡 / 綁卡", rate: "3.3%", sortVal: 3.3,
@@ -395,11 +395,11 @@
             },
             {
                 group: "📱 網購 / 遊戲 / 影音",
-                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎"],
+                keywords: ["蝦皮", "momo", "pchome", "淘寶", "酷澎", "netflix", "youtube", "spotify", "disney"],
                 cardName: "國泰 CUBE 卡",
                 scheme: "切換【玩數位】", schemeType: "cube",
                 method: "直接刷卡", rate: "3%", sortVal: 3.0,
-                limit: "PChome 不含儲值",
+                limit: "含 Youtube/Netflix/Spotify",
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
@@ -432,7 +432,7 @@
                 period: "2026/1/1 ~ 2026/6/30"
             },
 
-            // --- 12. 兜底 (包含悠遊卡) ---
+            // --- 12. 兜底 ---
             {
                 group: "🌟 一般消費 (無腦刷)",
                 keywords: ["default", "一般", "悠遊卡"],
@@ -492,7 +492,7 @@
         ];
 
         // -----------------------------------------------------------
-        // 程式邏輯區
+        // 程式邏輯區 (含智慧排序)
         // -----------------------------------------------------------
         const input = document.getElementById('search-input');
         const resultArea = document.getElementById('result-area');
@@ -529,6 +529,8 @@
 
         function findBestCard(query) {
             resultArea.innerHTML = "";
+            
+            // 步驟 1: 篩選出有包含關鍵字的卡片
             let matches = rules.filter(rule => {
                 return rule.keywords.some(k => query.includes(k) || k.includes(query));
             });
@@ -539,11 +541,44 @@
                 defaults.forEach(card => resultArea.innerHTML += createCardHtml(card));
             } else {
                 resultArea.innerHTML = `<div class="result-title">🔍 "${input.value}" 搜尋結果：</div>`;
-                matches.sort((a, b) => b.sortVal - a.sortVal);
+                
+                // 步驟 2: 智慧排序 (Smart Sort)
+                // 優先度：
+                // 1. 完全匹配或關鍵字非常接近 (例如輸入 Netflix, 關鍵字有 Netflix)
+                // 2. sortVal 高低
+                
+                matches.sort((a, b) => {
+                    // 計算 A 的最佳匹配分數
+                    const scoreA = getMatchScore(a.keywords, query);
+                    const scoreB = getMatchScore(b.keywords, query);
+                    
+                    if (scoreA !== scoreB) {
+                        return scoreB - scoreA; // 分數高的排前面
+                    }
+                    return b.sortVal - a.sortVal; // 分數一樣，比回饋率
+                });
+
                 matches.forEach((card, index) => {
                     resultArea.innerHTML += createCardHtml(card, index === 0);
                 });
             }
+        }
+
+        // 計算匹配分數的函式
+        function getMatchScore(keywords, query) {
+            let maxScore = 0;
+            keywords.forEach(k => {
+                let score = 0;
+                if (k === query) score = 100; // 完全一樣
+                else if (k.includes(query)) score = 80; // 關鍵字包含搜尋詞 (搜尋: net, 關鍵字: netflix)
+                else if (query.includes(k)) {
+                    // 搜尋詞包含關鍵字 (搜尋: netflix, 關鍵字: net) -> 這種就是 NET 衣服的問題
+                    // 如果關鍵字太短，分數要給低一點，避免誤判
+                    score = 50; 
+                }
+                if (score > maxScore) maxScore = score;
+            });
+            return maxScore;
         }
 
         function createCardHtml(card, highlight = false) {
